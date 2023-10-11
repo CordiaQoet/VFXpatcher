@@ -1,13 +1,18 @@
 {
     "Author": "Cordia Qoet",
     "Name": "VFXpatcher",
-    "Punchline": "A short one-liner that shows up in /xlplugins.",
-    "Description": "A description that shows up in /xlplugins. List any major slash-command(s).",
+    "Punchline": "Patcher for pre 6.5 vfx mods.",
+    "Description": "Attempt to patch old mods using vanilla atex and avfx to the correct paths.\nNeeds the mod to be installed in Penumbra.",
     "InternalName": "VFXPatcher",
     "ApplicableVersion": "any",
     "Tags": [
-        "sample",
+        "vfx",
         "plugin",
-        "goats"
-    ]
+        "mods"
+    ],
+    "RepoURL": "https://github.com/CordiaQoet/VFXpatcher",
+    "IconUrl": null,
+    "DownloadLinkInstall": null,
+    "DownloadLinkTesting": null,
+    "DownloadLinkUpdate": null
 }

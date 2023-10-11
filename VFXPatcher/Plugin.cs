@@ -1,6 +1,9 @@
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Lumina;
+using Lumina.Data;
+using Dalamud.Data;
 using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
@@ -10,6 +13,7 @@ namespace VFXPatcher
 {
     public sealed class Plugin : IDalamudPlugin
     {
+        [PluginService] public static IDataManager Data { get; private set; } = null!;
         public string Name => "VFXpatcher";
         private const string CommandName = "/vfxpatcher";
 
@@ -31,23 +35,25 @@ namespace VFXPatcher
             this.Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             this.Configuration.Initialize(this.PluginInterface);
 
-            // you might normally want to embed resources and load them from the manifest stream
+            /* you might normally want to embed resources and load them from the manifest stream
             var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
             var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
+            */
 
             ConfigWindow = new ConfigWindow(this);
-            MainWindow = new MainWindow(this, goatImage);
+            MainWindow = new MainWindow(this);
             
             WindowSystem.AddWindow(ConfigWindow);
             WindowSystem.AddWindow(MainWindow);
 
             this.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
-                HelpMessage = "A useful message to display in /xlhelp"
+                HelpMessage = "No argument opens the main window, /vfxpatcher cfg opens the config."
             });
 
             this.PluginInterface.UiBuilder.Draw += DrawUI;
-            this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+            this.PluginInterface.UiBuilder.OpenMainUi += OpenMainUI;
+            //this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
         }
 
         public void Dispose()
@@ -62,6 +68,12 @@ namespace VFXPatcher
 
         private void OnCommand(string command, string args)
         {
+
+            if (args == "cfg")
+            {
+                ConfigWindow.IsOpen = true;
+                return;
+            }
             // in response to the slash command, just display our main ui
             MainWindow.IsOpen = true;
         }
@@ -69,6 +81,11 @@ namespace VFXPatcher
         private void DrawUI()
         {
             this.WindowSystem.Draw();
+            MainWindow._importFolderPicker.Draw();
+        }
+        private void OpenMainUI()
+        {
+            MainWindow.IsOpen = true;
         }
 
         public void DrawConfigUI()
