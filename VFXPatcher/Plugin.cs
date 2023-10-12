@@ -81,7 +81,7 @@ namespace VFXPatcher
         private void DrawUI()
         {
             this.WindowSystem.Draw();
-            MainWindow._importFolderPicker.Draw();
+            MainWindow._folderPicker.Draw();
         }
         private void OpenMainUI()
         {
