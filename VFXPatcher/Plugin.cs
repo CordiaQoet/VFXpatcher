@@ -24,6 +24,7 @@ namespace VFXPatcher
 
         private ConfigWindow ConfigWindow { get; init; }
         private MainWindow MainWindow { get; init; }
+        public FixerWindow FixerWindow { get; init; }
 
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -42,9 +43,11 @@ namespace VFXPatcher
 
             ConfigWindow = new ConfigWindow(this);
             MainWindow = new MainWindow(this);
+            FixerWindow = new FixerWindow(this);
             
             WindowSystem.AddWindow(ConfigWindow);
             WindowSystem.AddWindow(MainWindow);
+            WindowSystem.AddWindow(FixerWindow);
 
             this.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -62,6 +65,7 @@ namespace VFXPatcher
             
             ConfigWindow.Dispose();
             MainWindow.Dispose();
+            FixerWindow.Dispose();
             
             this.CommandManager.RemoveHandler(CommandName);
         }
@@ -81,7 +85,7 @@ namespace VFXPatcher
         private void DrawUI()
         {
             this.WindowSystem.Draw();
-            MainWindow._importFolderPicker.Draw();
+            MainWindow._folderPicker.Draw();
         }
         private void OpenMainUI()
         {
@@ -91,6 +95,10 @@ namespace VFXPatcher
         public void DrawConfigUI()
         {
             ConfigWindow.IsOpen = true;
+        }
+        public void DrawFixerUI()
+        {
+            FixerWindow.IsOpen = true;
         }
     }
 }
