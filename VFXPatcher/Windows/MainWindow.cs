@@ -17,14 +17,14 @@ using Dalamud.Plugin.Services;
 using System.Collections.Generic;
 using Dalamud.IoC;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
 
 namespace VFXPatcher.Windows;
 
 public class VfxFileContent
 {
     public required string[] ParsedPaths { get; set; }
-    public required string Origin { get; set; }
-    public bool HaveError { get; set; }
+    public bool[]? HaveError { get; set; }
 }
 
 
@@ -34,12 +34,7 @@ public class MainWindow : Window, IDisposable
     public readonly FileDialogManager _folderPicker = new();
     private bool isModSelected = false;
     private string modSelected = "";
-    //private List<string[]> avfxContent = new List<string[]>();
-    //private List<string[]> papContent = new List<string[]>();
-    //private List<string[]> tmbContent = new List<string[]>();
-    private List<VfxFileContent> avfxContent = new List<VfxFileContent>();
-    private List<VfxFileContent> papContent = new List<VfxFileContent>();
-    private List<VfxFileContent> tmbContent = new List<VfxFileContent>();
+    private Dictionary<string, VfxFileContent> vfxFileContent = new Dictionary<string, VfxFileContent>();
     private string[]? files_scd;
     private string[]? files_atex;
     private string[]? files_avfx;
@@ -53,6 +48,7 @@ public class MainWindow : Window, IDisposable
     private bool avfxParsed = false;
     private bool papParsed = false;
     private bool tmbParsed = false;
+    private bool errorOnly = true;
 
 
     public MainWindow(Plugin plugin) : base(
@@ -69,14 +65,14 @@ public class MainWindow : Window, IDisposable
 
     public void Dispose()
     {
-
+        GC.SuppressFinalize(this);
     }
 
     public override void Draw()
     {
         /*if (ImGui.Button("Show Settings"))
         {
-            this.Plugin.DrawConfigUI();
+            this.plugin.DrawConfigUI();
         }*/
 
         if (isModSelected == true)
@@ -99,9 +95,7 @@ public class MainWindow : Window, IDisposable
                 avfxParsed = false;
                 papParsed = false;
                 tmbParsed = false;
-                avfxContent = new List<VfxFileContent>();
-                papContent = new List<VfxFileContent>();
-                tmbContent = new List<VfxFileContent>();
+                vfxFileContent = new Dictionary<string, VfxFileContent>();
             }
 
             if (scdExist)
@@ -111,7 +105,7 @@ public class MainWindow : Window, IDisposable
                 {
                     if (ImGui.Button("Check scd"))
                     {
-                        //do stuff
+                        // do stuff...
                     }
                     if (!(tmbExist == tmbParsed && papExist == papParsed && avfxExist == avfxParsed))
                         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -126,7 +120,7 @@ public class MainWindow : Window, IDisposable
                 {
                     if (ImGui.Button("Check atex"))
                     {
-                        //do stuff
+                        // do stuff...
                     }
                     if (!(tmbExist == tmbParsed && papExist == papParsed && avfxExist == avfxParsed))
                         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -137,15 +131,14 @@ public class MainWindow : Window, IDisposable
             if (avfxExist)
             {
                 ImGui.SameLine();
-                using (ImRaii.Disabled(avfxParsed = true))
+                using (ImRaii.Disabled(avfxParsed))
                 {
                     if (ImGui.Button("Parse avfx"))
                     {
                         foreach (var file in files_avfx)
                         {
-                            var a = ParseVfxFile(file);
-                            avfxContent.Add(new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), Origin = a.Item2 });
-                            //avfxContent.ParsedPaths.Origin = a.Item2;
+                            var a = ParseVfxFile(file, modSelected);
+                            vfxFileContent.Add(a.Item2, new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), HaveError = a.Item3.ToArray() });
                         }
                         avfxParsed = true;
                     }
@@ -155,14 +148,14 @@ public class MainWindow : Window, IDisposable
             if (papExist)
             {
                 ImGui.SameLine();
-                using (ImRaii.Disabled(papParsed = true))
+                using (ImRaii.Disabled(papParsed))
                 {
                     if (ImGui.Button("Parse pap"))
                     {
                         foreach (var file in files_pap)
                         {
-                            var a = ParseVfxFile(file);
-                            papContent.Add(new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), Origin = a.Item2 });
+                            var a = ParseVfxFile(file, modSelected);
+                            vfxFileContent.Add(a.Item2, new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), HaveError = a.Item3.ToArray() });
                         }
                         papParsed = true;
                     }
@@ -172,16 +165,31 @@ public class MainWindow : Window, IDisposable
             if (tmbExist)
             {
                 ImGui.SameLine();
-                using (ImRaii.Disabled(tmbParsed = true))
+                using (ImRaii.Disabled(tmbParsed))
                 {
                     if (ImGui.Button("Parse tmb"))
                     {
                         foreach (var file in files_tmb)
                         {
-                            var a = ParseVfxFile(file);
-                            tmbContent.Add(new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), Origin = a.Item2 });
+                            var a = ParseVfxFile(file, modSelected);
+                            vfxFileContent.Add(a.Item2, new VfxFileContent() { ParsedPaths = a.Item1.ToArray(), HaveError = a.Item3.ToArray() });
                         }
                         tmbParsed = true;
+                    }
+                }
+            }
+            ImGui.SameLine();
+            ImGui.Checkbox("Show only errors", ref errorOnly);
+
+            if (tmbExist == tmbParsed && papExist == papParsed && avfxExist == avfxParsed)
+            {
+                if (vfxFileContent.Values.Count(x => x.HaveError.Contains(true)) > 0)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Try to fix it"))
+                    {
+                        // Do something...
+                        this.plugin.DrawFixerUI();
                     }
                 }
             }
@@ -207,62 +215,115 @@ public class MainWindow : Window, IDisposable
                 ImGui.Separator();
             }
 
+            // List all avfx files, the paths included in them when parsed and check for errors.
             if (avfxExist)
             {
                 ImGui.Text($"avfx found: {files_avfx.Length}");
-                int i = 0;
-                foreach (var file in files_avfx)
+                if (avfxParsed)
                 {
-                    ImGui.Text($"{file.Replace(modSelected, ".")}");
-                    /*
-                    if (avfxContent.Exists(x => x.Origin == file))
+                    foreach (var file in files_avfx)
                     {
-                        int errorCount = 0;
-                        avfxContent.ForEach(x => x.Origin == file);
+                        var e = file.Replace(modSelected, ".");
+                        if (vfxFileContent[file].HaveError.Contains(true))
                         {
-                            //to do: check if these paths exist in the gamedata OR in the mod, if not, find the new path and suggest the change
-                            if (!Plugin.Data.FileExists(s))
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 0.0f, 1.0f));
+                        }
+                        if (ImGui.TreeNode($"{e}"))
+                        {
+                            ImGui.Indent();
+                            var content = vfxFileContent[file].ParsedPaths;
+                            if (content != null)
                             {
-                                if (!SearchInJson(modSelected, s))
+                                for (int i = 0; i < content.Length; i++ )
                                 {
-                                    ImGui.TextColored(new Vector4(1.0f, 1.0f, 0.0f, 1.0f), $"{s}"); ImGui.SameLine();
-                                    if (ImGui.Button($"{i}-{errorCount} Do something"))
-                                    {
-                                        // do stuff...
-                                    }
-                                    errorCount++;
+                                    if (vfxFileContent[file].HaveError[i])
+                                        ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{content[i]}");
+                                    else if (!errorOnly) ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 0.5f), content[i]);
                                 }
                             }
+                            if (!vfxFileContent[file].HaveError.Contains(true)) ImGui.Text("No error found.");
+                            else ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{vfxFileContent[file].HaveError.Count(x => x == true)} error(s) found.");
+                            ImGui.Unindent();
+                            ImGui.TreePop();
                         }
-                        if (errorCount == 0)
-                        {
-                            ImGui.Text("No error found");
-                        }
-                        else ImGui.Text($"{errorCount} error(s) found");
+                        if (vfxFileContent[file].HaveError.Contains(true)) ImGui.PopStyleColor();
                     }
-                    i++;
-                    */
-                }
+                } else ImGui.Text("Not parsed yet.");
                 ImGui.Separator();
             }
 
             if (papExist)
             {
                 ImGui.Text($"pap found: {files_pap.Length}");
-                foreach (var file in files_pap)
+                if (papParsed)
                 {
-                    ImGui.Text($"{file.Replace(modSelected, ".")}");
+                    foreach (var file in files_pap)
+                    {
+                        var e = file.Replace(modSelected, ".");
+                        if (vfxFileContent[file].HaveError.Contains(true))
+                        {
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            e = "Have error(s) " + e;
+                        }
+                        if (ImGui.TreeNode($"{e}"))
+                        {
+                            ImGui.Indent();
+                            var content = vfxFileContent[file].ParsedPaths;
+                            if (content != null)
+                            {
+                                for (int i = 0; i < content.Length; i++)
+                                {
+                                    if (vfxFileContent[file].HaveError[i])
+                                        ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{content[i]}");
+                                    else if (!errorOnly) ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 0.5f), content[i]);
+                                }
+                            }
+                            if (!vfxFileContent[file].HaveError.Contains(true)) ImGui.Text("No error found.");
+                            else ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{vfxFileContent[file].HaveError.Count(x => x == true)} error(s) found.");
+                            ImGui.Unindent();
+                            ImGui.TreePop();
+                        }
+                    }
                 }
+                else ImGui.Text("Not parsed yet.");
                 ImGui.Separator();
             }
 
             if (tmbExist)
             {
                 ImGui.Text($"tmb found: {files_tmb.Length}");
-                foreach (var file in files_tmb)
+                if (tmbParsed)
                 {
-                    ImGui.Text($"{file.Replace(modSelected, ".")}");
+                    foreach (var file in files_tmb)
+                    {
+                        var e = file.Replace(modSelected, ".");
+                        if (vfxFileContent[file].HaveError.Contains(true))
+                        {
+                            ImGui.SetNextItemOpen(true, ImGuiCond.Once);
+                            e = "Have error(s) " + e;
+                        }
+                        if (ImGui.TreeNode($"{e}"))
+                        {
+                            ImGui.Indent();
+                            var content = vfxFileContent[file].ParsedPaths;
+                            if (content != null)
+                            {
+                                for (int i = 0; i < content.Length; i++)
+                                {
+                                    if (vfxFileContent[file].HaveError[i])
+                                        ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{content[i]}");
+                                    else if (!errorOnly) ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 0.5f), content[i]);
+                                }
+                            }
+                            if (!vfxFileContent[file].HaveError.Contains(true)) ImGui.Text("No error found.");
+                            else ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), $"{vfxFileContent[file].HaveError.Count(x => x == true)} error(s) found.");
+                            ImGui.Unindent();
+                            ImGui.TreePop();
+                        }
+                    }
                 }
+                else ImGui.Text("Not parsed yet.");
                 ImGui.Separator();
             }
         }
@@ -306,11 +367,18 @@ public class MainWindow : Window, IDisposable
             }
         });
     }
-    private static (List<string>, string) ParseVfxFile(string path)
+
+    private void FixStuff()
+    {
+
+    }
+
+    private static (List<string>, string, List<bool>) ParseVfxFile(string path, string modSelected)
     {
         PluginLog.Information("Parsing " + Path.GetFileName(path));
         string file;
         string result;
+        List<bool> haveError = new List<bool>();
         List<string> parsedPaths = new List<string>();
 
         if (new FileInfo(path).Length != 0)
@@ -318,7 +386,7 @@ public class MainWindow : Window, IDisposable
         else
         {
             PluginLog.Error("Error parsing the file...");
-            return (parsedPaths, string.Empty);
+            return (parsedPaths, string.Empty, haveError);
         }
 
         var regexScd = @"00-73-6F-75-6E-64-2F.*?2E-73-63-64-00";
@@ -358,7 +426,21 @@ public class MainWindow : Window, IDisposable
             parsedPaths.Add(result);
             PluginLog.Information(result);
         }
-        return (parsedPaths, path);
+        foreach (string s in parsedPaths)
+        {
+            // Check if the found paths are either bundled in the mod or exist in the game data.
+            if (!Plugin.Data.FileExists(s) && !SearchInJson(modSelected, s))
+            {
+                haveError.Add(true);
+                //PluginLog.Information($"Error detected: gamedata :{Plugin.Data.FileExists(s)} json: {SearchInJson(modSelected, s)}");
+            } else
+            {
+                haveError.Add(false);
+                //PluginLog.Information("Looks good");
+            }
+        }
+        PluginLog.Information($"Error(s) detected: {haveError.Count(x => x == true)}");
+        return (parsedPaths, path, haveError);
     }
     public static string ConvertHex(String hexString)
     {
