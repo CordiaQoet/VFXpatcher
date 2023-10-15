@@ -23,7 +23,7 @@ namespace VFXPatcher
         public WindowSystem WindowSystem = new("VFXPatcher");
 
         private ConfigWindow ConfigWindow { get; init; }
-        private MainWindow MainWindow { get; init; }
+        public MainWindow MainWindow { get; init; }
         public FixerWindow FixerWindow { get; init; }
 
         public Plugin(
@@ -51,7 +51,7 @@ namespace VFXPatcher
 
             this.CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
-                HelpMessage = "No argument opens the main window, /vfxpatcher cfg opens the config."
+                HelpMessage = "Opens the main window."
             });
 
             this.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -72,13 +72,13 @@ namespace VFXPatcher
 
         private void OnCommand(string command, string args)
         {
-
+            /*
             if (args == "cfg")
             {
                 ConfigWindow.IsOpen = true;
                 return;
-            }
-            // in response to the slash command, just display our main ui
+            }*/
+            // in response to the slash command, just display the main ui.
             MainWindow.IsOpen = true;
         }
 
